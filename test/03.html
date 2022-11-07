@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../dist/webThree.js"></script>
+</head>
+<body>
+<canvas id="webThreeCanvas" width="900" height="600"></canvas>
+<script>
+    /* 数据 */
+    const rectData = new Float32Array([
+        // 前面
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        -0.5, -0.5, 0.5,
+
+        -0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        -0.5, 0.5, 0.5,
+
+        // 后面
+        0.5, -0.5, -0.5,
+        0.5, 0.5, -0.5,
+        -0.5, -0.5, -0.5,
+
+        -0.5, -0.5, -0.5,
+        0.5, 0.5, -0.5,
+        -0.5, 0.5, -0.5,
+
+        // 左边
+        -0.5, -0.5, 0.5,
+        -0.5, 0.5, 0.5,
+        -0.5, 0.5, -0.5,
+
+        -0.5, -0.5, 0.5,
+        -0.5, 0.5, -0.5,
+        -0.5, -0.5, -0.5,
+
+        // 右边
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5,
+
+        0.5, -0.5, 0.5,
+        0.5, 0.5, -0.5,
+        0.5, -0.5, -0.5,
+
+        // 上面
+        -0.5, 0.5, 0.5,
+        0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5,
+
+        -0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5,
+        -0.5, 0.5, -0.5,
+
+        // 下面
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, -0.5, -0.5,
+
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+    ])
+    const color = []
+    for (let i = 0; i < 36; i++)
+        color.push(Math.random(), Math.random(), Math.random())
+    const colorData = new Float32Array(color)
+</script>
+<script>
+    /** @type WebGL2RenderingContext */
+    const context = document.getElementById("webThreeCanvas").getContext('webgl2')
+    context.viewport(0, 0, 900, 600)
+    context.clearColor(0, 0, 0, 1)
+    context.enable(context.DEPTH_TEST)
+    /** 3d渲染测试 */
+    const program = webThree.gl.createProgram(
+        context,
+        `precision mediump float;
+        attribute vec3 in_pos;
+        attribute vec3 in_color;
+        uniform mat4 eye_matrix;
+        uniform mat4 perspective_matrix;
+        uniform mat4 model_matrix;
+        varying vec3 color;
+        void main() {
+            gl_Position = perspective_matrix * eye_matrix * model_matrix * vec4(in_pos , 1.0);
+            color = in_color;
+        }`,
+        `precision mediump float;
+        varying vec3 color;
+        void main() {
+            gl_FragColor = vec4(color,1.0);
+        }`
+    )
+
+    const modelMatrix = new webThree.math.Matrix4()
+    webThree.math.translate(modelMatrix , [0 , 0 , 2])
+    webThree.math.scale(modelMatrix , [1 , 2 , 1])
+
+    const vboList = []
+    const vao = webThree.gl.createVertexArrayBuffer(
+        context, program, [
+            { bufferData: rectData, attributes: [{name: "in_pos", length: 3}] },
+            { bufferData: colorData, attributes: [{name: "in_color", length: 3}] },
+        ], vboList
+    )
+
+    const camera = webThree.TEST.createPerspectiveEulerCamera({
+        aspect: 900 / 600 ,
+        far: 100 , near: 0.1 ,
+    })
+
+    webThree.animation.register((dt) => {
+        context.clear(context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT)
+
+        context.bindVertexArray(vao)
+        context.useProgram(program)
+
+        webThree.math.rotate(modelMatrix , dt * 0.002 , [0 , 1 , 0])
+
+        webThree.gl.sendUniformData(context, program, "perspective_matrix", camera.projectionMatrix)
+
+        webThree.gl.sendUniformData(context, program, "eye_matrix", camera.eyeMatrix)
+
+        webThree.gl.sendUniformData(context, program, "model_matrix", modelMatrix)
+
+        context.drawArrays(context.TRIANGLES, 0, 36)
+    })
+</script>
+</body>
+</html>

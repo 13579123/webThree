@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../dist/webThree.js"></script>
+    <script src="./data.js"></script>
+</head>
+<body>
+<canvas id="webThreeCanvas" width="900" height="700"></canvas>
+</body>
+<script>
+    /** @type WebGL2RenderingContext 初始化操作 */
+    const context = document.getElementById('webThreeCanvas').getContext("webgl2")
+    context.viewport(0, 0, context.canvas.width, context.canvas.height)
+    context.clearColor(0, 0, 0, 1)
+    context.enable(context.DEPTH_TEST)
+    /* 创建相机 */
+    const camera = webThree.TEST.createPerspectiveEulerCamera({
+        aspect: context.canvas.width / context.canvas.height,
+        position: new webThree.math.Vec3([0, 0, -2])
+    })
+    /* 创建天空盒 */
+    const skybox = webThree.TEST.createSkybox(context, [
+        "http://localhost:63342/WebGL/resources/sky/right.jpg",
+        "http://localhost:63342/WebGL/resources/sky/left.jpg",
+        "http://localhost:63342/WebGL/resources/sky/top.jpg",
+        "http://localhost:63342/WebGL/resources/sky/bottom.jpg",
+        "http://localhost:63342/WebGL/resources/sky/front.jpg",
+        "http://localhost:63342/WebGL/resources/sky/back.jpg",
+    ])
+    /* 注册动画 */
+    webThree.animation.register(() => {
+        /* 清空画布 */
+        context.clear(context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT)
+        /* 更新相机 */
+        camera.updateEyeCamera()
+        /* 绘制天空盒子 */
+        skybox.draw(context, camera)
+        /* 绘制其他物品 */
+        // TODO
+    })
+
+    /* 鼠标锁定 */
+    context.canvas.onclick = function () {
+        context.canvas.onmousemove = function (ev) {
+            camera.pitch -= ev.movementY * 0.1
+            camera.yaw -= ev.movementX * 0.1
+            if (camera.pitch > 80) camera.pitch = 80
+            if (camera.pitch < -80) camera.pitch = -80
+        }
+        context.canvas.requestPointerLock()
+    }
+</script>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        * { margin: 0 ; padding: 0 }
+        body {display: flex;justify-content: center;align-items: center;height: 100vh}
+        canvas {border: 1px solid #000}
+    </style>
+</head>
+<body>
+<canvas width="700" height="700"></canvas>
+<script src="./util.js"></script>
+<script src="./../dist/webThree.js"></script>
+<!-- 绘制正方体 -->
+<script>
+    const
+        canvasWidth = document.querySelector("canvas").width ,
+        canvasHeight = document.querySelector("canvas").height
+    /* 顶点数据 */
+    const pointDataBuffer = [
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0,  1.0, -1.0,
+        1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0,
+        -1.0, -1.0, -1.0,
+
+        -1.0, -1.0,  1.0,
+        1.0, -1.0,  1.0,
+        1.0,  1.0,  1.0,
+        1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        -1.0, -1.0,  1.0,
+
+        -1.0,  1.0,  1.0,
+        -1.0,  1.0, -1.0,
+        -1.0, -1.0, -1.0,
+        -1.0, -1.0, -1.0,
+        -1.0, -1.0,  1.0,
+        -1.0,  1.0,  1.0,
+
+        1.0,  1.0,  1.0,
+        1.0,  1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0, -1.0,  1.0,
+        1.0,  1.0,  1.0,
+
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0, -1.0,  1.0,
+        1.0, -1.0,  1.0,
+        -1.0, -1.0,  1.0,
+        -1.0, -1.0, -1.0,
+
+        -1.0,  1.0, -1.0,
+        1.0,  1.0, -1.0,
+        1.0,  1.0,  1.0,
+        1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        -1.0,  1.0, -1.0,
+    ].map(d => d * 0.5)
+    /* 转换为点的齐次坐标 */
+    const points = []
+    for (let i = 0; i < pointDataBuffer.length / 3 ; i++) {
+        const pointCoordination = []
+        for (let j = 0; j < 3; j++)
+            pointCoordination.push(pointDataBuffer[i * 3 + j])
+        const point = new webThree.math.Vec4([...pointCoordination , 1.0])
+        point.z = 1 - point.z
+        points.push(point)
+    }
+    /* 渲染方块 */
+    function render(points) {
+        /* 屏幕的四分之一*/
+        const widthPercentage25 = canvasWidth / 4
+        const heightPercentage25 = canvasHeight / 4
+        /* 可渲染的点们 */
+        const renderData = []
+        /*
+        * 挤压并透视坐标
+        * 通过空间几何关系进行透视效果
+        * 假设摄像机横竖方向的展开角度为10
+        *  */
+        const tanT = webThree.math.tan(webThree.math.radians(10))
+        for (let i = 0; i < points.length; i++) {
+            let x =
+                points[i].x
+                * (widthPercentage25 / (widthPercentage25 + tanT * (points[i].z - 1) * widthPercentage25))
+                * widthPercentage25
+            let y =
+                points[i].y
+                * (widthPercentage25 / (widthPercentage25 + tanT * (points[i].z - 1) * widthPercentage25))
+                * widthPercentage25
+            renderData.push(new webThree.math.Vec2([x , y , points[i].z]))
+        }
+        /* 连线绘制 */
+        for (let i = 0; i < renderData.length / 3; i++) {
+            const
+                dot1 = renderData[i * 3 + 0],
+                dot2 = renderData[i * 3 + 1],
+                dot3 = renderData[i * 3 + 2]
+            util.setLine(dot1.x , dot1.y , dot2.x , dot2.y , 22 , 255 , 255)
+            util.setLine(dot2.x , dot2.y , dot3.x , dot3.y , 22 , 255 , 255)
+            util.setLine(dot3.x , dot3.y , dot1.x , dot1.y , 22 , 255 , 255)
+        }
+    }
+
+    let lastX = 0 , rotateNumber = 0
+    document.querySelector("canvas").onmouseenter = function (e) {
+        lastX = e.offsetX
+    }
+    document.querySelector("canvas").onmousemove = function (e) {
+        util.clearCanvas()
+        /* 旋转矩阵 */
+        const rotate = new webThree.math.Matrix4([
+            Math.cos(rotateNumber * 0.01),0,Math.sin(rotateNumber * 0.01),0,
+            0,1,0,0,
+            -Math.sin(rotateNumber * 0.01),0,Math.cos(rotateNumber * 0.01),0,
+            0,0,0,1
+        ])
+        const newPoints = points.map(data => data.copy())
+        for (let i = 0; i < newPoints.length; i++) {
+            newPoints[i] = rotate.multiplication(newPoints[i])
+        }
+        render(newPoints)
+        rotateNumber += e.offsetX - lastX
+        lastX = e.offsetX
+    }
+
+    /* 首次绘制 */
+    render(points)
+</script>
+</body>
+</html>

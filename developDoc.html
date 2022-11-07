@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        * { margin: 0;padding: 0 }
+        .flex-center-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #left-enum {
+            width: 250px;
+            height: 100%;
+            background-color: #666;
+            overflow: auto;
+        }
+        #left-enum .enum-item {
+            width: 100%;
+            height: 60px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #left-enum .enum-item a{
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 800;
+            width: 100%;
+            height: 100%;
+            text-decoration: none;
+        }
+        #left-enum .enum-item:hover {
+            background-color: #888;
+            color: black;
+        }
+
+        #right-content {
+            flex-grow: 1;
+            height: 100vh;
+            padding: 0 5%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            font-size: 1.1rem;
+        }
+        #right-content::after {
+            display: block;
+            content: "";
+            height: 10%;
+            width: 100%;
+        }
+        #right-content h1 , #right-content h2{
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            margin:20px 0 ;
+        }
+        #right-content h3 {
+            cursor: pointer;
+            color: #00ee93;
+            padding: 20px 0;
+            text-decoration: underline;
+        }
+        .code {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body style="display: flex;width: 100vw;height: 100vh">
+    <div id="left-enum">
+        <div class="enum-item">
+            <a href="#introduction" class="flex-center-center">webThree简介</a>
+        </div>
+        <div class="enum-item">
+            <a href="#math" class="flex-center-center">webThree.math</a>
+        </div>
+    </div>
+    <div id="right-content">
+        <!--简介-->
+        <div style="height: 1000px" id="introduction">
+            <h1> <span>webThree</span> 简介</h1>
+            <p>
+            </p>
+        </div>
+        <!--数学库-->
+        <div id="math">
+            <h1> webThree.math </h1>
+            <p>math 是webThree中内置的数学库，提供了常用的数学计算模块</p>
+            <h3> webbThree.math.Matrix2 </h3>
+            <p>
+                Matrix2 类表示数学中的矩阵类 , 定义:
+            </p>
+            <div class="code">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

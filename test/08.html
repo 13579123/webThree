@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../dist/webThree.js"></script>
+    <script src="./data.js"></script>
+</head>
+<body>
+<canvas id="webThreeCanvas" width="900" height="700"></canvas>
+<script type="x-shader/x-vertex" id="vertexGLSL">
+    precision mediump float;
+    varying vec2 uv;
+    attribute vec3 in_pos;
+    attribute vec2 in_uv;
+    uniform mat4 eyeMatrix;
+    uniform mat4 modelMatrix;
+    uniform mat4 perspectiveMatrix;
+    void main() {
+        gl_Position = perspectiveMatrix * eyeMatrix * modelMatrix * vec4(in_pos , 1.0);
+        uv = in_uv;
+    }
+</script>
+<script type="x-shader/x-fragment" id="fragmentGLSL">
+    precision mediump float;
+    varying vec2 uv;
+    uniform sampler2D texture_source;
+    void main() {
+        gl_FragColor = texture2D(texture_source , uv);
+    }
+</script>
+</body>
+<script>
+    /** @type WebGL2RenderingContext
+     * 初始化操作 */
+    const context = document.getElementById('webThreeCanvas').getContext("webgl2")
+    context.viewport(0 , 0 , context.canvas.width , context.canvas.height)
+    context.clearColor(0 , 0 , 0 , 1)
+    context.enable(context.DEPTH_TEST)
+    /* 创建相机 */
+    const camera = webThree.TEST.createPerspectiveEulerCamera({
+        aspect: context.canvas.width / context.canvas.height ,
+        position: new webThree.math.Vec3([0,0,-2])
+    })
+    /* 创建天空盒 */
+    const skybox = webThree.TEST.createSkybox(context , [
+        "http://localhost:63342/WebGL/resources/sky/right.jpg",
+        "http://localhost:63342/WebGL/resources/sky/left.jpg",
+        "http://localhost:63342/WebGL/resources/sky/top.jpg",
+        "http://localhost:63342/WebGL/resources/sky/bottom.jpg",
+        "http://localhost:63342/WebGL/resources/sky/front.jpg",
+        "http://localhost:63342/WebGL/resources/sky/back.jpg",
+    ])
+    /* 创建方块 */
+    const program = webThree.gl.createProgram(
+        context ,
+        document.getElementById("vertexGLSL").innerText ,
+        document.getElementById("fragmentGLSL").innerText
+    )
+    const vboList = []
+    const vao = webThree.gl.createVertexArrayBuffer(context , program , [{
+        bufferData: new Float32Array(CUBE_DATA_UV_ARRAY) ,
+        attributes: [
+            { name: "in_pos" , length: 3 },
+            { name: "in_uv" , length: 2 },
+        ]
+    }] , vboList)
+    const texture = webThree.gl.createTexture(
+        context ,
+        'http://localhost:63342/WebGL/resources/img/earth.jpg'
+    )
+    const modelMatrix = new webThree.math.Matrix4
+
+    /* 相机移动 */
+    let right = 0 , forward = 0
+
+    /* 注册动画 */
+    webThree.animation.register((dt) => {
+        /* 清空画布 */
+        context.clear(context.COLOR_BUFFER_BIT|context.DEPTH_BUFFER_BIT)
+        /* 更新相机 */
+        camera.position.addition(camera.right.copy().multiplication(right * 0.1))
+        camera.position.addition(camera.forward.copy().multiplication(forward * 0.1))
+        camera.updateEyeCamera()
+        /* 绘制天空盒子 */
+        skybox.draw(context , camera)
+        /* 绘制其他物品 */
+        context.useProgram(program)
+        context.bindVertexArray(vao)
+        context.activeTexture(context.TEXTURE0)
+        context.bindTexture(context.TEXTURE_2D , texture)
+        webThree.gl.sendUniformData(context , program , "eyeMatrix" , camera.eyeMatrix)
+        webThree.gl.sendUniformData(context , program , "perspectiveMatrix" , camera.projectionMatrix)
+        /* 物品旋转 */
+        webThree.math.rotate(modelMatrix , 0.001 * dt , [0 , 1 , 0])
+        webThree.gl.sendUniformData(context , program , "modelMatrix" , modelMatrix)
+        context.drawArrays(context.TRIANGLES , 0 , 36)
+    })
+
+    /* 鼠标锁定 */
+    context.canvas.onclick = function () {
+        context.canvas.onmousemove = function (ev) {
+            camera.pitch -= ev.movementY * 0.1
+            camera.yaw -= ev.movementX * 0.1
+            if (camera.pitch > 80) camera.pitch = 80
+            if (camera.pitch < -80) camera.pitch = -80
+        }
+        context.canvas.requestPointerLock()
+    }
+    document.onkeyup = function (e) {
+        switch (e.key) {
+            case "a" :right = 0
+                break
+            case "d" :right = 0
+                break
+            case "s" :forward = 0
+                break
+            case "w" :forward = 0
+                break
+        }
+    }
+    document.onkeydown = function (e) {
+        switch (e.key) {
+            case "a" :right = -1
+                break
+            case "d" :right = 1
+                break
+            case "s" :forward = -1
+                break
+            case "w" :forward = 1
+                break
+        }
+    }
+</script>
+</html>

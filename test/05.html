@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../dist/webThree.js"></script>
+    <script src="./data.js"></script>
+</head>
+<body>
+<canvas id="webThreeCanvas" width="900" height="700"></canvas>
+<script type="x-shader/x-vertex" id="vertexGLSL">
+precision mediump float;
+attribute vec3 in_pos;
+uniform mat4 eyeMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 perspectiveMatrix;
+varying vec3 uv;
+void main() {
+    mat4 eye = eyeMatrix;
+    mat4 perspective = perspectiveMatrix;
+    mat4 model = modelMatrix;
+    eye[3][0] = eye[3][1] = eye[3][2] = 0.0;
+    vec4 pos = perspective * eye * model * vec4(in_pos,1.0);
+    gl_Position = pos.xyww;
+    uv = in_pos;
+}
+</script>
+<script type="x-shader/x-fragment" id="fragmentGLSL">
+precision mediump float;
+uniform samplerCube cubSource;
+varying vec3 uv;
+void main () {
+    gl_FragColor = textureCube(cubSource, uv);
+}
+</script>
+<script>
+    /** @type WebGL2RenderingContext */
+    const context = document.getElementById("webThreeCanvas").getContext("webgl2")
+    context.viewport(0, 0, context.canvas.width, context.canvas.height)
+    context.clearColor(0, 0, 0, 1)
+    context.enable(context.DEPTH_TEST)
+    /* 创建着色器程序 */
+    const
+        vertex = document.getElementById("vertexGLSL").innerText ,
+        fragment = document.getElementById("fragmentGLSL").innerText
+    const program = webThree.gl.createProgram(context , vertex , fragment)
+    /* 创建正方体纹理 */
+    const texture = webThree.gl.createCubTexture(context , [
+        "http://localhost:63342/WebGL/resources/sky/right.jpg",
+        "http://localhost:63342/WebGL/resources/sky/left.jpg",
+        "http://localhost:63342/WebGL/resources/sky/top.jpg",
+        "http://localhost:63342/WebGL/resources/sky/bottom.jpg",
+        "http://localhost:63342/WebGL/resources/sky/front.jpg",
+        "http://localhost:63342/WebGL/resources/sky/back.jpg",
+    ])
+    /* 创建vao */
+    const vboList = []
+    const vao = webThree.gl.createVertexArrayBuffer(context , program , [{
+        bufferData: new Float32Array(CUBE_DATA_ARRAY) ,
+        attributes: [
+            { name: "in_pos" , length: 3 },
+        ]
+    }] , vboList)
+    /* 创建相机 */
+    const camera = webThree.TEST.createPerspectiveEulerCamera({
+        aspect: context.canvas.width / context.canvas.height,
+        position: new webThree.math.Vec3([0 , 0 , 0])
+    })
+    /* 相机数据 */
+    let right = 0 , forward = 0
+    /* 注册动画 */
+    webThree.animation.register(() => {
+        /* 清空画布 */
+        context.clear(context.COLOR_BUFFER_BIT|context.DEPTH_BUFFER_BIT)
+        /* 使用程序 */
+        context.useProgram(program)
+        /* 更新相机 */
+        camera.position.addition(camera.right.copy().multiplication(right * 0.1))
+        camera.position.addition(camera.forward.copy().multiplication(forward * 0.1))
+        camera.updateEyeCamera()
+        /* 传输3个3维矩阵 */
+        webThree.gl.sendUniformData(context , program , "eyeMatrix" , camera.eyeMatrix)
+        webThree.gl.sendUniformData(context , program , "perspectiveMatrix" , camera.projectionMatrix)
+        webThree.gl.sendUniformData(context , program , "modelMatrix" , (new webThree.math.Matrix4))
+        /* 传输纹理 */
+        context.bindTexture(context.TEXTURE_CUBE_MAP, texture);
+        /* 绑定vao */
+        context.bindVertexArray(vao)
+        /* 绘制盒子 */
+        context.depthFunc(context.LEQUAL)
+        context.depthMask(false)
+        context.drawArrays(context.TRIANGLES , 0 , 36)
+        context.depthMask(true)
+        context.depthFunc(context.LESS)
+    })
+
+    /* 相机控制 */
+    document.onkeyup = function (e) {
+        switch (e.key) {
+            case "a" :
+                right = 0
+                break
+            case "d" :
+                right = 0
+                break
+            case "s" :
+                forward = 0
+                break
+            case "w" :
+                forward = 0
+                break
+        }
+    }
+    document.onkeydown = function (e) {
+        switch (e.key) {
+            case "a" :
+                right = -1
+                break
+            case "d" :
+                right = 1
+                break
+            case "s" :
+                forward = -1
+                break
+            case "w" :
+                forward = 1
+                break
+            case "Escape" :
+                context.canvas.onmousemove = null
+                break
+        }
+    }
+    context.canvas.onclick = function () {
+        context.canvas.requestPointerLock()
+        context.canvas.onmousemove = function (ev) {
+            camera.pitch -= ev.movementY * 0.1
+            camera.yaw -= ev.movementX * 0.1
+            if (camera.pitch > 80) camera.pitch = 80
+            if (camera.pitch < -80) camera.pitch = -80
+        }
+    }
+</script>
+</body>
+</html>
