@@ -54,8 +54,8 @@ export function lookAt(eye: Vec3 , target: Vec3 , up: Vec3): Matrix4 {
 }
 
 /* 偏移矩阵 */
-export function translate(matrix: Matrix4 , translate: Vec3|number[]): void {
-    if (!Matrix4.isInstance(matrix)) return
+export function translate(matrix: Matrix4 , translate: Vec3|number[]): Matrix4 {
+    if (!Matrix4.isInstance(matrix)) return matrix
     if (Vec3.isInstance(translate)) translate = (<Vec3>translate).toArray()
     translate = <number[]> translate
     const v: number[][] = [
@@ -70,12 +70,12 @@ export function translate(matrix: Matrix4 , translate: Vec3|number[]): void {
     }
     for (let i = 0 ; i < 4 ; i++)
         matrix.set(4 , i + 1 , v[0][i] + v[1][i] + v[2][i] + v[3][i])
-    return
+    return matrix
 }
 
 /* 旋转矩阵 */
 export function rotate(matrix: Matrix4 , angle: number , rotate: Vec3|number[]) {
-    if (!Matrix4.isInstance(matrix)) return
+    if (!Matrix4.isInstance(matrix)) return matrix
     if (Array.isArray(rotate)) rotate = new Vec3(rotate)
     const a = angle;
     const c = Math.cos(a);
@@ -106,11 +106,13 @@ export function rotate(matrix: Matrix4 , angle: number , rotate: Vec3|number[]) 
     matrix.setRow( 1 , row1 )
     matrix.setRow( 2 , row2 )
     matrix.setRow( 3 , row3 )
+
+    return matrix;
 }
 
 /* 缩放矩阵 */
 export function scale(matrix: Matrix4 , scale: Vec3|number[]) {
-    if (!Matrix4.isInstance(matrix)) return
+    if (!Matrix4.isInstance(matrix)) return matrix
     if (Vec3.isInstance(scale)) scale = (<Vec3>scale).toArray()
     scale = <number[]> scale
     for (let i = 1; i <= 3; i++)
@@ -120,5 +122,5 @@ export function scale(matrix: Matrix4 , scale: Vec3|number[]) {
             matrix.get(i,3) * scale[i - 1] ,
             matrix.get(i,4) * scale[i - 1] ,
         ])
-    return
+    return matrix
 }

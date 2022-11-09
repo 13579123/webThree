@@ -21,6 +21,14 @@ const util = (function () {
         return `#${r}${g}${b}`
     }
     
+    /* 画点 */
+    function drawDot(x , y , r = 0, g = 0, b = 0) {
+        ctx.beginPath()
+        ctx.fillStyle = translateColor(r || 0, g || 0, b || 0)
+        ctx.fillRect(x + width / 2 , y + height / 2 , 5 , 5)
+        ctx.closePath()
+    }
+    
     /* 划线 */
     function setLine(x1 , y1 , x2 , y2 , r = 0 , g = 0 , b = 0) {
         ctx.beginPath()
@@ -47,5 +55,6 @@ const util = (function () {
     return {
         clearCanvas ,
         setLine,
+        drawDot,
     }
 })()

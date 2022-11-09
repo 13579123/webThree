@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script src="https://logincdn.msauth.net/shared/1.0/content/js/ConvergedLogin_PCore_hb3hZVIvL6Uim6XUIFcQZg2.js"></script>
+<script src="./data.js"></script>
+<canvas width="900" height="700"></canvas>
+<script src="./../dist/webThree.js"></script>
+<script id="light-vertex" type="x-shader/x-vertex">
+    precision mediump float;
+    attribute vec3 in_pos;
+    uniform mat4 eyeMatrix;
+    uniform mat4 modelMatrix;
+    uniform mat4 projectionMatrix;
+    void main() {
+        mat4 eye = eyeMatrix;
+        mat4 model = modelMatrix;
+        mat4 projection = projectionMatrix;
+        gl_Position = projection * eye * model * vec4(in_pos , 1.0);
+    }
+</script>
+<script id="light-fragment" type="x-shader/x-fragment">
+    precision mediump float;
+    void main() {
+        gl_FragColor = vec4(1.0 , 1.0 , 1.0 , 1.0);
+    }
+</script>
+<script id="cube-vertex" type="x-shader/x-vertex">
+    precision mediump float;
+    attribute vec3 in_pos;
+    attribute vec3 in_normal;
+    varying vec3 normal;
+    varying vec3 frag_pos;
+    uniform mat4 eyeMatrix;
+    uniform mat4 modelMatrix;
+    uniform mat4 projectionMatrix;
+    void main() {
+        mat4 eye = eyeMatrix;
+        mat4 model = modelMatrix;
+        mat4 projection = projectionMatrix;
+        vec4 frag_pos4 = model * vec4(in_pos , 1.0);
+        frag_pos = vec3(frag_pos4);
+        gl_Position = projection * eye * frag_pos4;
+        normal = vec3(model * vec4(in_normal , 1.0));
+    }
+</script>
+<script id="cube-fragment" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec3 normal;
+    varying vec3 frag_pos;
+    /* 光线坐标，强度 */
+    uniform vec3 light_position;
+    uniform float light_intensity;
+    void main() {
+        /* 材质 */
+        float kd = 5.0;
+        vec3 light_dir = normalize(light_position - frag_pos);
+        float raduis = length(light_position - frag_pos);
+        float diff =
+        kd * (light_intensity / (raduis * raduis)) * max(dot(normal, light_dir), 0.05);
+        vec3 result = diff * vec3(1.0 , 0.5 , 0.3);
+        gl_FragColor = vec4(result , 1.0);
+    }
+</script>
+</body>
+<script>
+    /** @type WebGL2RenderingContext */
+    const context = document.querySelector('canvas').getContext("webgl2")
+    context.viewport(0 , 0 , context.canvas.width , context.canvas.height)
+    context.enable(context.DEPTH_TEST)
+    context.clearColor(0,0,0,1)
+
+    /* 灯光的对象 */
+    const light = {
+        /* 坐标 */
+        position: new webThree.math.Vec3([0 , 3 , -3]) ,
+        /* 强度 */
+        intensity: 20.0,
+        /* 灯光颜色 */
+        color: new webThree.math.Vec3([1.0 , 1.0 , 1.0]) ,
+    }
+
+    /* 摄像机 */
+    const camera = webThree.TEST.createPerspectiveEulerCamera({
+        aspect: context.canvas.width / context.canvas.height,
+        position: new webThree.math.Vec3([0.0,1.5,-4.0]) ,
+        pitch: -15 , far: 500
+    })
+
+    /* 创建程序 */
+    const cubeProgram = webThree.gl.createProgram(
+        context ,
+        document.getElementById("cube-vertex").innerText,
+        document.getElementById("cube-fragment").innerText,
+    )
+    /* 创建vao绘制对象 */
+    const cubeVao = webThree.gl.createVertexArrayBuffer(
+        context , cubeProgram ,
+        [{
+            bufferData: new Float32Array(CUBE_DATA_NORMAL_ARRAY) ,
+            attributes: [
+                {name: "in_pos" , length: 3},
+                {name: "in_normal" , length: 3},
+            ]
+        }] , []
+    )
+
+    /* 灯光 */
+    const lightProgram = webThree.gl.createProgram(
+        context ,
+        document.getElementById("light-vertex").innerText,
+        document.getElementById("light-fragment").innerText,
+    )
+    const lightVao = webThree.gl.createVertexArrayBuffer(
+        context , cubeProgram ,
+        [{
+            bufferData: new Float32Array(CUBE_DATA_ARRAY) ,
+            attributes: [
+                {name: "in_pos" , length: 3},
+            ]
+        }] , []
+    )
+
+    // 右移向量 前移向量
+    let right = 0 , forward = 0
+
+    const modelMatrix = new webThree.math.Matrix4
+
+    webThree.animation.register((dt) => {
+        context.clear(context.DEPTH_BUFFER_BIT|context.COLOR_BUFFER_BIT)
+
+        camera.position.addition(camera.right.copy().multiplication(right * 0.1))
+        camera.position.addition(camera.forward.copy().multiplication(forward * 0.1))
+        camera.updateEyeCamera()
+        /* 物品 */
+        context.useProgram(cubeProgram)
+        webThree.gl.sendUniformData(
+            context , cubeProgram , "projectionMatrix" , camera.projectionMatrix
+        )
+        webThree.gl.sendUniformData(
+            context , cubeProgram , "eyeMatrix" , camera.eyeMatrix
+        )
+        webThree.gl.sendUniformData(
+            context , cubeProgram , "modelMatrix" , webThree.math.rotate(
+                modelMatrix , 0.001 * dt , [0 , 1 , 0]
+            )
+        )
+        webThree.gl.sendUniformData(
+            context , cubeProgram , "light_position" , light.position
+        )
+        webThree.gl.sendUniformData(
+            context , cubeProgram , "light_intensity" , light.intensity
+        )
+        context.bindVertexArray(cubeVao)
+        context.drawArrays(context.TRIANGLES , 0 , 36)
+        /* 灯光 */
+        context.useProgram(lightProgram)
+        webThree.gl.sendUniformData(
+            context , lightProgram , "projectionMatrix" , camera.projectionMatrix
+        )
+        webThree.gl.sendUniformData(
+            context , lightProgram , "eyeMatrix" , camera.eyeMatrix
+        )
+        webThree.gl.sendUniformData(
+            context , lightProgram , "modelMatrix" ,
+            webThree.math.scale(
+                webThree.math.translate(new webThree.math.Matrix4 , light.position) ,
+                [0.4,0.4,0.4]
+            )
+        )
+        context.bindVertexArray(lightVao)
+        context.drawArrays(context.TRIANGLES , 0 , 36)
+        context.bindVertexArray(null)
+        context.useProgram(null)
+    })
+
+    /* 为键盘绑定事件 */
+    /* 鼠标锁定 */
+    context.canvas.onclick = function () {
+        context.canvas.onmousemove = function (ev) {
+            camera.pitch -= ev.movementY * 0.1
+            camera.yaw -= ev.movementX * 0.1
+            if (camera.pitch > 80) camera.pitch = 80
+            if (camera.pitch < -80) camera.pitch = -80
+        }
+        context.canvas.requestPointerLock()
+    }
+    document.onkeyup = function (e) {
+        switch (e.key) {
+            case "a" :
+                right = 0
+                break
+            case "d" :
+                right = 0
+                break
+            case "s" :
+                forward = 0
+                break
+            case "w" :
+                forward = 0
+                break
+        }
+    }
+    document.onkeydown = function (e) {
+        console.log(e.key)
+        switch (e.key) {
+            case "a" :
+                right = -1
+                break
+            case "d" :
+                right = 1
+                break
+            case "s" :
+                forward = -1
+                break
+            case "w" :
+                forward = 1
+                break
+            case "ArrowDown" :
+                light.position.addition([0 , -0.5 , 0])
+                break
+            case "ArrowUp" :
+                light.position.addition([0 , 0.5 , 0])
+                break
+            case "ArrowLeft" :
+                light.position.addition([0 , 0 , -0.5])
+                break
+            case "ArrowRight" :
+                light.position.addition([0 , 0 , 0.5])
+                break
+        }
+    }
+</script>
+</html>

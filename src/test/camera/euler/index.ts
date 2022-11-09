@@ -12,7 +12,10 @@ type CameraOption = {
     top?: number
     bottom?: number
     right?: number
-    position?: Vec3,
+    pitch?: number
+    yaw?: number
+    roll?: number
+    position?: Vec3
     worldUp?: Vec3
 }
 
@@ -46,6 +49,9 @@ export class EulerCamera {
         this.type = type
         if (option.worldUp) this.worldUp = option.worldUp
         if (option.position) this.position = option.position.copy()
+        this.pitch = option.pitch || 0
+        this.yaw = option.yaw || 0
+        this.roll = option.roll || 0
         this.updateEyeCamera().updateModelCamera(option)
     }
     /* 相机数据重新计算 */

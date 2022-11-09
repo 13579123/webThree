@@ -979,7 +979,7 @@
     /* 偏移矩阵 */
     function translate(matrix, translate) {
         if (!Matrix4.isInstance(matrix))
-            return;
+            return matrix;
         if (Vec3.isInstance(translate))
             translate = translate.toArray();
         translate = translate;
@@ -995,12 +995,12 @@
         }
         for (let i = 0; i < 4; i++)
             matrix.set(4, i + 1, v[0][i] + v[1][i] + v[2][i] + v[3][i]);
-        return;
+        return matrix;
     }
     /* 旋转矩阵 */
     function rotate(matrix, angle, rotate) {
         if (!Matrix4.isInstance(matrix))
-            return;
+            return matrix;
         if (Array.isArray(rotate))
             rotate = new Vec3(rotate);
         const a = angle;
@@ -1026,11 +1026,12 @@
         matrix.setRow(1, row1);
         matrix.setRow(2, row2);
         matrix.setRow(3, row3);
+        return matrix;
     }
     /* 缩放矩阵 */
     function scale(matrix, scale) {
         if (!Matrix4.isInstance(matrix))
-            return;
+            return matrix;
         if (Vec3.isInstance(scale))
             scale = scale.toArray();
         scale = scale;
@@ -1041,7 +1042,7 @@
                 matrix.get(i, 3) * scale[i - 1],
                 matrix.get(i, 4) * scale[i - 1],
             ]);
-        return;
+        return matrix;
     }
 
     var math = {
@@ -1300,6 +1301,9 @@
                 this.worldUp = option.worldUp;
             if (option.position)
                 this.position = option.position.copy();
+            this.pitch = option.pitch || 0;
+            this.yaw = option.yaw || 0;
+            this.roll = option.roll || 0;
             this.updateEyeCamera().updateModelCamera(option);
         }
         /* 相机数据重新计算 */
